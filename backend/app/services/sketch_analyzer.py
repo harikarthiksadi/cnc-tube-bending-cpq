@@ -61,11 +61,13 @@ class SketchAnalyzer:
                 arc_len = (math.pi * b_clr * angle_deg) / 180.0
                 total_arc_length += arc_len
 
-                direction = str(item.get("direction", "right")).lower()
+                direction = str(item.get("direction", "right")).strip().lower()
 
                 # 3rd-Axis Plane Rotation (Roll angle B around tube axis)
                 if "plane_rotation_deg" in item and item["plane_rotation_deg"] is not None:
                     beta_deg = float(item["plane_rotation_deg"])
+                    if "left" in direction and abs(beta_deg) < 1e-3:
+                        beta_deg = 180.0
                 else:
                     if "up" in direction or "+z" in direction:
                         beta_deg = 90.0  # +Z Height Rise
@@ -78,59 +80,58 @@ class SketchAnalyzer:
 
                 beta_rad = math.radians(beta_deg)
 
-                # Binormal vector = Tangent x Normal
-                cur_binorm = np.cross(cur_dir, cur_norm)
-                bn_norm = np.linalg.norm(cur_binorm)
-                if bn_norm > 1e-5:
-                    cur_binorm = cur_binorm / bn_norm
-                else:
-                    cur_binorm = np.array([0.0, 0.0, 1.0])
+                # Reference up vector [0, 0, 1]
+                u_ref = np.array([0.0, 0.0, 1.0])
+                if abs(np.dot(cur_dir, u_ref)) > 0.99:
+                    u_ref = np.array([0.0, 1.0, 0.0])
 
-                # Rotated normal around cur_dir by beta
-                rot_norm = cur_norm * math.cos(beta_rad) + cur_binorm * math.sin(beta_rad)
+                # Right vector in plane (tangent x u_ref)
+                r_vec = np.cross(cur_dir, u_ref)
+                r_norm = np.linalg.norm(r_vec)
+                if r_norm > 1e-6:
+                    r_vec = r_vec / r_norm
+                else:
+                    r_vec = np.array([0.0, -1.0, 0.0])
+
+                # Up perpendicular vector
+                u_perp = np.cross(r_vec, cur_dir)
+                u_perp = u_perp / np.linalg.norm(u_perp)
+
+                # Bend normal vector towards the center of curvature
+                rot_norm = r_vec * math.cos(beta_rad) + u_perp * math.sin(beta_rad)
                 rot_norm = rot_norm / np.linalg.norm(rot_norm)
 
-                # Bend center and rotation axis
+                # Bend center
                 bend_center = cur_pos + rot_norm * b_clr
-                rot_axis = np.cross(cur_dir, rot_norm)
-                rot_axis = rot_axis / np.linalg.norm(rot_axis)
 
                 # Arc discretization
                 arc_steps = max(6, int(angle_deg / 10.0))
                 for a in np.linspace(0, angle_rad, arc_steps)[1:]:
-                    v = cur_pos - bend_center
-                    v_rot = (
-                        v * math.cos(a) +
-                        np.cross(rot_axis, v) * math.sin(a) +
-                        rot_axis * np.dot(rot_axis, v) * (1 - math.cos(a))
-                    )
-                    arc_pt = bend_center + v_rot
-                    centerline.append([round(float(arc_pt[0]), 2), round(float(arc_pt[1]), 2), round(float(arc_pt[2]), 2)])
+                    pt_arc = bend_center - rot_norm * (b_clr * math.cos(a)) + cur_dir * (b_clr * math.sin(a))
+                    centerline.append([round(float(pt_arc[0]), 2), round(float(pt_arc[1]), 2), round(float(pt_arc[2]), 2)])
 
                 cur_pos = np.array(centerline[-1], dtype=float)
 
-                # Update tangent and normal vectors after bend
-                cur_dir = (
-                    cur_dir * math.cos(angle_rad) +
-                    np.cross(rot_axis, cur_dir) * math.sin(angle_rad) +
-                    rot_axis * np.dot(rot_axis, cur_dir) * (1 - math.cos(angle_rad))
-                )
-                cur_dir = cur_dir / np.linalg.norm(cur_dir)
+                # Update tangent vector after bend
+                new_dir = cur_dir * math.cos(angle_rad) + rot_norm * math.sin(angle_rad)
+                cur_dir = new_dir / np.linalg.norm(new_dir)
 
-                cur_norm = rot_norm * math.cos(angle_rad) + np.cross(rot_axis, rot_norm) * math.sin(angle_rad)
-                cur_norm = cur_norm / np.linalg.norm(cur_norm)
-
-                # Classify 3rd axis plane label
+                # Classify 3rd axis plane label and directional label
                 if abs(beta_deg - 90.0) < 1.0:
                     plane_label = "Up (+Z Height Rise)"
+                    dir_label = "Up"
                 elif abs(beta_deg - (-90.0)) < 1.0 or abs(beta_deg - 270.0) < 1.0:
                     plane_label = "Down (-Z Depth Drop)"
+                    dir_label = "Down"
                 elif abs(beta_deg - 180.0) < 1.0:
                     plane_label = "Left (X-Y Plane)"
+                    dir_label = "Left"
                 elif abs(beta_deg) < 1.0:
                     plane_label = "Right (X-Y Plane)"
+                    dir_label = "Right"
                 else:
                     plane_label = f"Spatial Roll ({int(beta_deg)}°)"
+                    dir_label = f"Roll {int(beta_deg)}°"
 
                 bends.append({
                     "bend_number": bend_idx,
@@ -140,8 +141,8 @@ class SketchAnalyzer:
                     "plane_rotation_deg": beta_deg,
                     "plane_label": plane_label,
                     "arc_length_mm": round(arc_len, 2),
-                    "direction": direction.capitalize(),
-                    "center": [round(bend_center[0], 2), round(bend_center[1], 2), round(bend_center[2], 2)]
+                    "direction": dir_label,
+                    "center": [round(float(bend_center[0]), 2), round(float(bend_center[1]), 2), round(float(bend_center[2]), 2)]
                 })
 
                 ybc_table.append({

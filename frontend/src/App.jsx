@@ -15,6 +15,14 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("cpq");
   const [inputMode, setInputMode] = useState("sketch"); // "sketch" (2D Paper Drawing) or "cad" (3D CAD File)
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("tube-cpq-theme") || "light";
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("tube-cpq-theme", theme);
+  }, [theme]);
 
   // Active geometry state
   const [geometryData, setGeometryData] = useState({
@@ -89,7 +97,13 @@ export default function App() {
   // Handler for line drawing / sketch update
   function handleDrawingLoaded(data, name) {
     setGeometryData(data);
-    setDrawingTitle(name);
+    let cleanName = name || data.drawing_type || "Technical Drawing";
+    cleanName = cleanName
+      .replace(/Universal Precision Drawing Brain/gi, "Technical Drawing")
+      .replace(/Universal Drawing/gi, "Drawing")
+      .replace(/\(\d+\s*Bends?\s*Detected\)/gi, "")
+      .trim();
+    setDrawingTitle(cleanName);
 
     setSpecs((prev) => ({
       ...prev,
@@ -120,7 +134,12 @@ export default function App() {
   return (
     <div className="app-container">
       {/* Navigation Header */}
-      <Header activeTab={activeTab} onTabChange={setActiveTab} />
+      <Header
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        theme={theme}
+        onToggleTheme={(newTheme) => setTheme(newTheme)}
+      />
 
       {/* Primary Tab: CPQ Studio */}
       {activeTab === "cpq" && (
@@ -133,9 +152,10 @@ export default function App() {
               tubeOdMm={specs.tube_od_mm}
               bends={geometryData.bends}
               partName={drawingTitle}
+              theme={theme}
             />
 
-            {/* Input Mode Selector Tabs (2D Paper Drawing vs 3D CAD) */}
+            {/* Input Mode Selector Tabs (Drawings vs 3D CAD) */}
             <div style={{ display: "flex", gap: 10, background: "var(--bg-surface)", padding: 6, borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)" }}>
               <button
                 className={`nav-tab ${inputMode === "sketch" ? "active" : ""}`}
@@ -143,7 +163,7 @@ export default function App() {
                 onClick={() => setInputMode("sketch")}
               >
                 <PenTool size={15} />
-                <span>2D Paper Line Drawing / Sketch Input</span>
+                <span>Drawings & Sketches</span>
               </button>
 
               <button
@@ -152,7 +172,7 @@ export default function App() {
                 onClick={() => setInputMode("cad")}
               >
                 <FileCode2 size={15} />
-                <span>3D CAD File (.STEP / .IGES)</span>
+                <span>3D CAD Model</span>
               </button>
             </div>
 

@@ -1,24 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import {
-  RotateCcw,
-  Eye,
-  Layers,
-  Maximize2,
-  Compass,
-  Play,
-  Pause,
-  ZoomIn,
-  ZoomOut,
-  Box,
-  MoveVertical
-} from "lucide-react";
 
 export default function ThreeViewer({
   centerline = [],
   tubeOdMm = 25.4,
   bends = [],
-  partName = "Custom Formed Tube Assembly"
+  partName = "Technical Model",
+  theme = "light"
 }) {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -29,15 +17,17 @@ export default function ThreeViewer({
   const markersGroupRef = useRef(null);
   const boxHelperRef = useRef(null);
   const heightDimGroupRef = useRef(null);
+  const gridRef = useRef(null);
+  const ambientLightRef = useRef(null);
   const reqIdRef = useRef(null);
 
-  // View state
-  const [wireframe, setWireframe] = useState(false);
-  const [showCenterline, setShowCenterline] = useState(true);
-  const [showMarkers, setShowMarkers] = useState(true);
-  const [showBBox, setShowBBox] = useState(false);
-  const [showHeightDim, setShowHeightDim] = useState(true);
-  const [autoRotate, setAutoRotate] = useState(false);
+  // View state - clean default view
+  const [wireframe] = useState(false);
+  const [showCenterline] = useState(false);
+  const [showMarkers] = useState(false);
+  const [showBBox] = useState(false);
+  const [showHeightDim] = useState(false);
+  const [autoRotate] = useState(false);
   const [activeView, setActiveView] = useState("iso");
 
   // Dynamic 3D bounding dimensions state
@@ -60,16 +50,23 @@ export default function ThreeViewer({
 
     const width = container.clientWidth || 600;
     const height = container.clientHeight || 440;
+    const isLight = theme === "light";
 
     // 1. Scene setup
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#080D18");
+    scene.background = new THREE.Color(isLight ? "#F8FAFC" : "#080D18");
     sceneRef.current = scene;
 
     // Grid Floor (X-Z horizontal plane)
-    const grid = new THREE.GridHelper(600, 30, 0x1E2E4A, 0x131E33);
+    const grid = new THREE.GridHelper(
+      600,
+      30,
+      isLight ? 0xCBD5E1 : 0x1E2E4A,
+      isLight ? 0xE2E8F0 : 0x131E33
+    );
     grid.position.y = -100;
     scene.add(grid);
+    gridRef.current = grid;
 
     // 2. Camera setup
     const camera = new THREE.PerspectiveCamera(45, width / height, 1, 3000);
@@ -87,8 +84,9 @@ export default function ThreeViewer({
     container.appendChild(renderer.domElement);
 
     // 4. Lighting setup (CNC Studio Metal reflection)
-    const ambient = new THREE.AmbientLight(0xFFFFFF, 0.9);
+    const ambient = new THREE.AmbientLight(0xFFFFFF, isLight ? 1.3 : 0.9);
     scene.add(ambient);
+    ambientLightRef.current = ambient;
 
     const keyLight = new THREE.DirectionalLight(0xE0F2FE, 2.2);
     keyLight.position.set(200, 300, 200);
@@ -129,12 +127,12 @@ export default function ThreeViewer({
 
     const onMouseMove = (e) => {
       if (!isDraggingRef.current) return;
-      const deltaX = e.clientX - prevMousePos.current.x;
-      const deltaY = e.clientY - prevMousePos.current.y;
+      const dx = e.clientX - prevMousePos.current.x;
+      const dy = e.clientY - prevMousePos.current.y;
       prevMousePos.current = { x: e.clientX, y: e.clientY };
 
-      cameraAngle.current.theta -= deltaX * 0.008;
-      cameraAngle.current.phi = Math.max(0.1, Math.min(Math.PI - 0.1, cameraAngle.current.phi - deltaY * 0.008));
+      cameraAngle.current.theta -= dx * 0.008;
+      cameraAngle.current.phi = Math.max(0.05, Math.min(Math.PI - 0.05, cameraAngle.current.phi + dy * 0.008));
       updateCameraPosition();
     };
 
@@ -144,7 +142,7 @@ export default function ThreeViewer({
 
     const onWheel = (e) => {
       e.preventDefault();
-      cameraAngle.current.radius = Math.max(120, Math.min(1200, cameraAngle.current.radius + e.deltaY * 0.6));
+      cameraAngle.current.radius = Math.max(80, Math.min(2000, cameraAngle.current.radius + e.deltaY * 0.8));
       updateCameraPosition();
     };
 
@@ -176,10 +174,35 @@ export default function ThreeViewer({
     };
   }, []);
 
+  // Update scene when theme changes
+  useEffect(() => {
+    if (!sceneRef.current) return;
+    const isLight = theme === "light";
+    sceneRef.current.background = new THREE.Color(isLight ? "#F8FAFC" : "#080D18");
+
+    if (gridRef.current) {
+      sceneRef.current.remove(gridRef.current);
+      gridRef.current.geometry.dispose();
+      const newGrid = new THREE.GridHelper(
+        600,
+        30,
+        isLight ? 0xCBD5E1 : 0x1E2E4A,
+        isLight ? 0xE2E8F0 : 0x131E33
+      );
+      newGrid.position.y = -100;
+      sceneRef.current.add(newGrid);
+      gridRef.current = newGrid;
+    }
+
+    if (ambientLightRef.current) {
+      ambientLightRef.current.intensity = isLight ? 1.3 : 0.9;
+    }
+  }, [theme]);
+
   // Update geometry when centerline, OD, bends, or toggles change
   useEffect(() => {
     rebuildTubeGeometry(centerline, tubeOdMm, bends);
-  }, [centerline, tubeOdMm, bends, wireframe, showCenterline, showMarkers, showBBox, showHeightDim]);
+  }, [centerline, tubeOdMm, bends, wireframe, showCenterline, showMarkers, showBBox, showHeightDim, theme]);
 
   function updateCameraPosition() {
     if (!cameraRef.current) return;
@@ -384,8 +407,9 @@ export default function ThreeViewer({
       canvas.width = 320;
       canvas.height = 70;
       const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "rgba(10, 18, 35, 0.92)";
-      ctx.strokeStyle = "#06B6D4";
+      const isLight = theme === "light";
+      ctx.fillStyle = isLight ? "rgba(255, 255, 255, 0.96)" : "rgba(10, 18, 35, 0.92)";
+      ctx.strokeStyle = isLight ? "#0284C7" : "#06B6D4";
       ctx.lineWidth = 3;
       if (ctx.roundRect) {
         ctx.roundRect(0, 0, 320, 70, 10);
@@ -396,7 +420,7 @@ export default function ThreeViewer({
       ctx.stroke();
 
       ctx.font = "bold 24px monospace";
-      ctx.fillStyle = "#38BDF8";
+      ctx.fillStyle = isLight ? "#0369A1" : "#38BDF8";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(`↕ Height (Z): ${hMm}mm (${hIn}")`, 160, 35);
@@ -418,139 +442,48 @@ export default function ThreeViewer({
     updateCameraPosition();
   }
 
+  const cleanPartName = (partName || "Technical Model")
+    .replace(/Universal Precision Drawing Brain/gi, "Technical Drawing")
+    .replace(/Universal Drawing/gi, "Drawing")
+    .replace(/\(\d+\s*Bends?\s*Detected\)/gi, "")
+    .trim();
+
   return (
     <div className="viewport-card">
       {/* 3D WebGL Canvas */}
       <div ref={mountRef} className="three-canvas-container" />
 
-      {/* Part Title Overlay */}
-      <div className="viewport-overlay">
-        <div className="part-name-tag">{partName}</div>
-        <div className="part-meta-tag">
-          OD: &Oslash;{tubeOdMm}mm &bull; Bends: {bends.length} &bull; Centerline Spline: Active
-        </div>
-      </div>
-
-      {/* 3D Part Envelope Real-Time Telemetry Badge */}
-      <div
-        style={{
-          position: "absolute",
-          top: 12,
-          right: 12,
-          background: "rgba(10, 18, 35, 0.88)",
-          backdropFilter: "blur(8px)",
-          border: envelope.is3D ? "1px solid var(--accent-cyan)" : "1px solid var(--border-color)",
-          borderRadius: "var(--radius-sm)",
-          padding: "6px 12px",
-          fontSize: "0.72rem",
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-          boxShadow: envelope.is3D ? "0 0 14px rgba(6, 182, 212, 0.3)" : "none",
-          zIndex: 10
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, color: envelope.is3D ? "var(--accent-cyan)" : "var(--text-secondary)" }}>
-          <Box size={13} />
-          <span>Part Envelope:</span>
-          {envelope.is3D ? (
-            <span style={{ background: "rgba(6, 182, 212, 0.2)", color: "var(--accent-cyan)", padding: "1px 6px", borderRadius: 3, fontSize: "0.65rem", fontWeight: 800 }}>
-              3D COMPOUND BEND
+      {/* Top Bar: Part Info & Camera Orientation View Selector (Non-Overlapping Flex Layout) */}
+      <div className="viewer-top-bar">
+        <div className="viewer-part-info">
+          <div className="part-name-tag">{cleanPartName}</div>
+          <div className="part-meta-chips">
+            <span className="meta-chip">Ø{tubeOdMm}mm</span>
+            <span className="meta-chip">{bends.length} {bends.length === 1 ? "Bend" : "Bends"}</span>
+            <span className="meta-chip">
+              {envelope.is3D ? "3D Multi-Plane" : "Flat 2D"}
             </span>
-          ) : (
-            <span style={{ color: "var(--text-muted)", fontSize: "0.65rem" }}>
-              FLAT 2D
-            </span>
-          )}
+            {envelope.width > 0 && (
+              <span className="meta-chip dimensions">
+                {envelope.width} × {envelope.length} {envelope.is3D ? `× ${envelope.height}` : ""} mm
+              </span>
+            )}
+          </div>
         </div>
-        <div style={{ fontFamily: "var(--font-mono)", color: "var(--text-main)" }}>
-          {envelope.width} &times; {envelope.length} &times;{" "}
-          <strong style={{ color: envelope.is3D ? "var(--accent-emerald)" : "inherit" }}>
-            {envelope.height} mm
-          </strong>
-          <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>
-            (Height: {envelope.heightIn}")
-          </span>
+
+        {/* Camera View Presets */}
+        <div className="viewport-views-selector">
+          {["iso", "top", "front", "side"].map((view) => (
+            <button
+              key={view}
+              className={`view-chip ${activeView === view ? "active" : ""}`}
+              onClick={() => setView(view)}
+              title={`Switch to ${view.toUpperCase()} view`}
+            >
+              {view.toUpperCase()}
+            </button>
+          ))}
         </div>
-      </div>
-
-      {/* Camera View Presets */}
-      <div className="viewport-views-selector">
-        {["iso", "top", "front", "side"].map((view) => (
-          <button
-            key={view}
-            className={`view-chip ${activeView === view ? "active" : ""}`}
-            onClick={() => setView(view)}
-          >
-            {view.toUpperCase()}
-          </button>
-        ))}
-      </div>
-
-      {/* Bottom Floating Toolbar */}
-      <div className="viewport-toolbar">
-        <button
-          className={`tool-btn ${wireframe ? "active" : ""}`}
-          onClick={() => setWireframe(!wireframe)}
-          title="Toggle Wireframe Mode"
-        >
-          <Layers size={14} />
-          <span>Wireframe</span>
-        </button>
-
-        <button
-          className={`tool-btn ${showCenterline ? "active" : ""}`}
-          onClick={() => setShowCenterline(!showCenterline)}
-          title="Toggle Neutral Centerline Spline"
-        >
-          <Compass size={14} />
-          <span>Centerline</span>
-        </button>
-
-        <button
-          className={`tool-btn ${showMarkers ? "active" : ""}`}
-          onClick={() => setShowMarkers(!showMarkers)}
-          title="Toggle Bend Highlight Markers"
-        >
-          <Eye size={14} />
-          <span>Bends ({bends.length})</span>
-        </button>
-
-        <button
-          className={`tool-btn ${showBBox ? "active" : ""}`}
-          onClick={() => setShowBBox(!showBBox)}
-          title="Toggle 3D Bounding Envelope Box"
-        >
-          <Box size={14} />
-          <span>Envelope Box</span>
-        </button>
-
-        <button
-          className={`tool-btn ${showHeightDim ? "active" : ""}`}
-          onClick={() => setShowHeightDim(!showHeightDim)}
-          title="Toggle Visual 3D Height Dimension (Z-Axis)"
-        >
-          <MoveVertical size={14} />
-          <span>Height Dim</span>
-        </button>
-
-        <button
-          className={`tool-btn ${autoRotate ? "active" : ""}`}
-          onClick={() => setAutoRotate(!autoRotate)}
-          title="Auto 360 Turntable Inspection"
-        >
-          {autoRotate ? <Pause size={14} /> : <Play size={14} />}
-          <span>Rotate</span>
-        </button>
-
-        <button
-          className="tool-btn"
-          onClick={() => setView("iso")}
-          title="Reset Camera View"
-        >
-          <RotateCcw size={14} />
-          <span>Reset</span>
-        </button>
       </div>
     </div>
   );

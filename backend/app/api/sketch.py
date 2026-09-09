@@ -77,6 +77,9 @@ def analyze_sample_sketch(sketch_id: str):
         return analyzed
 
     filename_map = {
+        "turbine_bracket": "user_turbine_bracket.png",
+        "clean_s_pipe": "user_clean_s_pipe.png",
+        "zigzag": "user_zigzag_drawing.png",
         "engineering_drawing": "engineering_drawing_sample.jpg",
         "handwritten_paper": "handwritten_paper_sample.jpg",
         "u_pipe": "hand_drawn_u_pipe.png",

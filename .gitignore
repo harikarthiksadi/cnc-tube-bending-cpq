@@ -33,5 +33,8 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 
-# Large temporary archives
+# Large temporary archives & scratch scripts
 cnc-tube-cpq-prototype.zip
+scratch/
+dist/
+*/dist/

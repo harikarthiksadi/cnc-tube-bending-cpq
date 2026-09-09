@@ -22,7 +22,7 @@ export default function PricingBreakdown({
     return (
       <div className="card">
         <div style={{ padding: 20, textAlign: "center", color: "var(--text-muted)" }}>
-          Calculating Version 3 Pricing...
+          Calculating Pricing...
         </div>
       </div>
     );
@@ -74,36 +74,66 @@ export default function PricingBreakdown({
           </div>
         </div>
 
-        {/* Costing Version 3 Grid Table (Exact Sheet 2 match) */}
-        <div style={{ background: "rgba(11, 19, 35, 0.8)", border: "1px solid var(--border-bright)", borderRadius: "var(--radius-md)", padding: 12, marginBottom: 16 }}>
-          <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--accent-cyan)", textTransform: "uppercase", marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
-            <span>CNC PIPE / TUBE BENDING COSTING - VERSION 3</span>
-            <span style={{ color: "var(--accent-amber)" }}>Yellow = User Input | Green = Auto Calc</span>
+        {/* Costing Summary Grid (4 Clean Metric Tiles) */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 8,
+          marginBottom: 16
+        }}>
+          <div style={{
+            background: "var(--bg-card-hover)",
+            border: "1px solid var(--border-color)",
+            padding: "8px 10px",
+            borderRadius: "var(--radius-sm)"
+          }}>
+            <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+              Quantity
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.95rem", fontWeight: 600, color: "var(--text-main)" }}>
+              {quantity} pcs
+            </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, fontSize: "0.78rem" }}>
-            <div style={{ background: "rgba(254, 240, 138, 0.1)", border: "1px solid rgba(234, 179, 8, 0.3)", padding: "6px 8px", borderRadius: 4 }}>
-              <div style={{ fontSize: "0.65rem", color: "var(--accent-amber)", fontWeight: 700 }}>Quantity</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.95rem", fontWeight: 700 }}>{quantity} pcs</div>
+          <div style={{
+            background: "var(--bg-card-hover)",
+            border: "1px solid var(--border-color)",
+            padding: "8px 10px",
+            borderRadius: "var(--radius-sm)"
+          }}>
+            <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+              Setting Charge
             </div>
-
-            <div style={{ background: "rgba(254, 240, 138, 0.1)", border: "1px solid rgba(234, 179, 8, 0.3)", padding: "6px 8px", borderRadius: 4 }}>
-              <div style={{ fontSize: "0.65rem", color: "var(--accent-amber)", fontWeight: 700 }}>Setting Charge</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.95rem", fontWeight: 700 }}>₹{breakdown.setting_charge.toFixed(2)}</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.95rem", fontWeight: 600, color: "var(--text-main)" }}>
+              ₹{breakdown.setting_charge.toFixed(2)}
             </div>
+          </div>
 
-            <div style={{ background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.3)", padding: "6px 8px", borderRadius: 4 }}>
-              <div style={{ fontSize: "0.65rem", color: "var(--accent-emerald)", fontWeight: 700 }}>Bending Rate / Pc</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.95rem", fontWeight: 700, color: "var(--accent-emerald)" }}>
-                ₹{breakdown.bending_rate_per_pc.toFixed(2)}
-              </div>
+          <div style={{
+            background: "var(--bg-card-hover)",
+            border: "1px solid var(--border-color)",
+            padding: "8px 10px",
+            borderRadius: "var(--radius-sm)"
+          }}>
+            <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+              Bending Rate
             </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.95rem", fontWeight: 600, color: "var(--text-main)" }}>
+              ₹{breakdown.bending_rate_per_pc.toFixed(2)}
+            </div>
+          </div>
 
-            <div style={{ background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.3)", padding: "6px 8px", borderRadius: 4 }}>
-              <div style={{ fontSize: "0.65rem", color: "var(--accent-emerald)", fontWeight: 700 }}>Cutting Rate / Pc</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.95rem", fontWeight: 700, color: "var(--accent-emerald)" }}>
-                ₹{breakdown.cutting_rate_per_pc.toFixed(2)}
-              </div>
+          <div style={{
+            background: "var(--bg-card-hover)",
+            border: "1px solid var(--border-color)",
+            padding: "8px 10px",
+            borderRadius: "var(--radius-sm)"
+          }}>
+            <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+              Cutting Rate
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.95rem", fontWeight: 600, color: "var(--text-main)" }}>
+              ₹{breakdown.cutting_rate_per_pc.toFixed(2)}
             </div>
           </div>
         </div>
@@ -135,9 +165,9 @@ export default function PricingBreakdown({
           >
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Calculator size={13} />
-              <span>Costing Version 3 Formula Trace</span>
+              <span>Costing Formula Trace</span>
             </span>
-            <span style={{ fontSize: "0.7rem", color: "var(--accent-cyan)" }}>
+            <span style={{ fontSize: "0.7rem", color: "var(--accent-primary)" }}>
               {showFormulas ? "Hide" : "View"}
             </span>
           </button>
@@ -165,7 +195,7 @@ export default function PricingBreakdown({
           <div className="override-header">
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Wrench size={13} />
-              <span>Sales Setting Charge & Rate Overrides</span>
+              <span>Setting Charge & Rate Overrides</span>
             </span>
           </div>
 
@@ -221,7 +251,7 @@ export default function PricingBreakdown({
                 textDecoration: "underline",
               }}
             >
-              Reset to Automated Version 3 Pricing
+              Reset to Calculated Rates
             </button>
           )}
         </div>
@@ -229,7 +259,7 @@ export default function PricingBreakdown({
         {/* Quantity Tier Schedule */}
         {quantity_tiers && quantity_tiers.length > 0 && (
           <div style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
+            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" }}>
               Quantity Tier Schedule (₹ / pc)
             </div>
             <table className="tiers-table">
@@ -248,7 +278,7 @@ export default function PricingBreakdown({
                     <td>{t.quantity} pcs</td>
                     <td>₹{t.labor_cost_per_pc.toFixed(2)}</td>
                     <td>₹{t.setup_amortized_per_pc.toFixed(2)}</td>
-                    <td style={{ color: "var(--accent-emerald)", fontWeight: 700 }}>
+                    <td style={{ color: "var(--accent-emerald)", fontWeight: 600 }}>
                       ₹{t.rate_per_piece.toFixed(2)}
                     </td>
                     <td>₹{t.total_cost.toFixed(0)}</td>
@@ -263,10 +293,10 @@ export default function PricingBreakdown({
         <button
           className="btn btn-primary"
           onClick={onOpenQuoteModal}
-          style={{ height: 46, fontSize: "0.95rem" }}
+          style={{ height: 44, fontSize: "0.92rem", width: "100%" }}
         >
-          <FileText size={18} />
-          <span>Generate Branded PDF Quote (₹ INR)</span>
+          <FileText size={16} />
+          <span>Generate Quotation PDF</span>
         </button>
       </div>
     </div>

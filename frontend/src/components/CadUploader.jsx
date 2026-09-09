@@ -56,8 +56,8 @@ export default function CadUploader({ onCadLoaded, currentFileName }) {
     <div className="card">
       <div className="card-header">
         <div className="card-title">
-          <FileCode2 size={18} />
-          <span>3D CAD Model Input (.STEP / .IGES)</span>
+          <FileCode2 size={16} />
+          <span>3D CAD Model</span>
         </div>
         {currentFileName && (
           <span className="status-badge">

@@ -19,53 +19,16 @@ export default function GeometrySpecs({
     <div className="card">
       <div className="card-header">
         <div className="card-title">
-          <Sliders size={18} />
-          <span>Job & Pipe Profile Specs (Rate Master Lookup)</span>
+          <Sliders size={16} />
+          <span>Tube & Job Specifications</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Tag size={13} style={{ color: "var(--accent-amber)" }} />
-          <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--accent-amber)" }}>
+          <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--accent-amber)" }}>
             Job No: #{specs.job_number || "121"}
           </span>
         </div>
       </div>
-
-      {/* 3D Part Bounding Envelope & Height Summary */}
-      {specs.bbox_3d && (
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          background: specs.height_mm > 5 ? "rgba(6, 182, 212, 0.08)" : "rgba(15, 23, 42, 0.4)",
-          border: specs.height_mm > 5 ? "1px solid var(--accent-cyan)" : "1px solid var(--border-color)",
-          borderRadius: "var(--radius-sm)",
-          padding: "6px 12px",
-          marginBottom: 12,
-          fontSize: "0.75rem"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Box size={14} style={{ color: specs.height_mm > 5 ? "var(--accent-cyan)" : "var(--text-muted)" }} />
-            <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>Part Envelope:</span>
-            <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-main)" }}>
-              {specs.bbox_3d.width_mm} × {specs.bbox_3d.length_mm} ×{" "}
-              <strong style={{ color: specs.height_mm > 5 ? "var(--accent-cyan)" : "inherit" }}>
-                {specs.height_mm} mm
-              </strong>
-            </span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {specs.height_mm > 5 ? (
-              <span style={{ color: "var(--accent-cyan)", fontWeight: 700 }}>
-                ↕ Z Height: {specs.height_mm} mm ({specs.height_in}") [3D Active]
-              </span>
-            ) : (
-              <span style={{ color: "var(--text-muted)" }}>
-                Single-Plane 2D (Height: 0 mm)
-              </span>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Primary Extracted Metrics Grid */}
       <div className="metrics-grid">
