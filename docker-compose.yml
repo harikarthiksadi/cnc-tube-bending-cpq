@@ -1,0 +1,9 @@
+services:
+  cnc-tube-cpq:
+    build: .
+    container_name: cnc-tube-cpq
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
