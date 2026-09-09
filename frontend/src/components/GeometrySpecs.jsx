@@ -47,7 +47,7 @@ export default function GeometrySpecs({
             <Box size={14} style={{ color: specs.height_mm > 5 ? "var(--accent-cyan)" : "var(--text-muted)" }} />
             <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>Part Envelope:</span>
             <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-main)" }}>
-              {specs.bbox_3d.width_mm} &times; {specs.bbox_3d.length_mm} &times;{" "}
+              {specs.bbox_3d.width_mm} × {specs.bbox_3d.length_mm} ×{" "}
               <strong style={{ color: specs.height_mm > 5 ? "var(--accent-cyan)" : "inherit" }}>
                 {specs.height_mm} mm
               </strong>
@@ -56,7 +56,7 @@ export default function GeometrySpecs({
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {specs.height_mm > 5 ? (
               <span style={{ color: "var(--accent-cyan)", fontWeight: 700 }}>
-                &updownarrow; Z Height: {specs.height_mm} mm ({specs.height_in}") [3D Active]
+                ↕ Z Height: {specs.height_mm} mm ({specs.height_in}") [3D Active]
               </span>
             ) : (
               <span style={{ color: "var(--text-muted)" }}>

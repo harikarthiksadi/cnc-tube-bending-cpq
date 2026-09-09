@@ -21,12 +21,12 @@ import {
   MoveVertical,
   SlidersHorizontal,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  X
 } from "lucide-react";
-import { analyzeLineDrawing, uploadDrawingPhoto, loadSampleSketch } from "../services/api";
+import { analyzeLineDrawing, uploadDrawingPhoto } from "../services/api";
 
 export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingName }) {
-  const [activeSample, setActiveSample] = useState("engineering_drawing");
   const [displayUnit, setDisplayUnit] = useState("mm"); // "mm" or "in"
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [annotatedImage, setAnnotatedImage] = useState(null);
@@ -35,80 +35,19 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
   const [showYbcTable, setShowYbcTable] = useState(true);
   const fileInputRef = useRef(null);
 
-  // Editable segments
+  // Default clean pipe geometry (3 legs, 2 bends)
   const [segments, setSegments] = useState([
-    { length_mm: 57.15, label: "Leg 1 (DBB)" },
-    { bend_angle_deg: 90.0, direction: "right", plane_rotation_deg: 0.0, clr_mm: 57.15 },
-    { length_mm: 76.20, label: "Leg 2 (DBB)" },
-    { bend_angle_deg: 90.0, direction: "right", plane_rotation_deg: 0.0, clr_mm: 19.05 },
-    { length_mm: 38.10, label: "Leg 3 (Straight)" }
+    { length_mm: 200.0, label: "Leg 1" },
+    { bend_angle_deg: 90.0, direction: "right", plane_rotation_deg: 0.0, clr_mm: 50.8 },
+    { length_mm: 200.0, label: "Leg 2" },
+    { bend_angle_deg: 90.0, direction: "right", plane_rotation_deg: 0.0, clr_mm: 50.8 },
+    { length_mm: 200.0, label: "Leg 3" }
   ]);
-
-  const benchmarkDrawings = [
-    {
-      id: "engineering_drawing",
-      label: "Engineering Blueprint (Image 1)",
-      desc: "Ø.75\" OD, .065\" WT, 2 Bends (CLR 2.25\" & .75\"), DBB Callouts",
-      type: "blueprint"
-    },
-    {
-      id: "handwritten_paper",
-      label: "Paper Sketch with Measurements (Image 2)",
-      desc: "ØD 25mm, 5 Legs (500, 350, 300, 150, 100mm), 4x 90° Bends",
-      type: "paper_sketch"
-    },
-    {
-      id: "3d_riser",
-      label: "3D Compound Riser (+Z Height)",
-      desc: "2x 90° Bends with 90° Z-Axis Elevation Rise (200mm Height)",
-      type: "3d_sketch"
-    },
-    {
-      id: "u_pipe",
-      label: "Hand-Drawn U-Pipe",
-      desc: "2x 90° Bends, 400mm Span",
-      type: "paper_sketch"
-    },
-    {
-      id: "l_pipe",
-      label: "Hand-Drawn 90° Elbow",
-      desc: "1x 90° Bend, 2x 250mm Legs",
-      type: "paper_sketch"
-    },
-    {
-      id: "s_pipe",
-      label: "Hand-Drawn S-Offset",
-      desc: "2x 45° Reverse Bends",
-      type: "paper_sketch"
-    }
-  ];
-
-  // Load Image 1 by default on mount
-  useEffect(() => {
-    handleLoadSample("engineering_drawing");
-  }, []);
-
-  async function handleLoadSample(sampleId) {
-    setActiveSample(sampleId);
-    setIsAnalyzing(true);
-    try {
-      const data = await loadSampleSketch(sampleId);
-      if (data.unit) {
-        setDisplayUnit(data.unit);
-      }
-      applyBrainDetection(data, data.drawing_type || `Drawing (${data.file_name})`);
-    } catch (err) {
-      console.error("Error analyzing sample drawing:", err);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }
 
   async function handlePhotoUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsAnalyzing(true);
-    setActiveSample(null);
     try {
       const data = await uploadDrawingPhoto(file);
       if (data.unit) {
@@ -119,6 +58,7 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
       alert("Vision Brain analysis failed: " + err.message);
     } finally {
       setIsAnalyzing(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -298,8 +238,8 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
         </div>
       </div>
 
-      {/* Drawing Classification Banner */}
-      {drawingMetadata && (
+      {/* Uploaded Drawing Classification Banner (Only when a drawing is loaded) */}
+      {drawingMetadata && annotatedImage && (
         <div style={{
           display: "flex",
           justifyContent: "space-between",
@@ -326,12 +266,25 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
               {drawingMetadata.drawing_type}
             </span>
           </div>
-          <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>
-            &Oslash;{drawingMetadata.tube_od_mm}mm ({drawingMetadata.tube_od_in}") &bull; {drawingMetadata.bends_count} Bends
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>
+              Ø{drawingMetadata.tube_od_mm}mm ({drawingMetadata.tube_od_in}") • {drawingMetadata.bends_count} Bends
+            </div>
+            <button
+              type="button"
+              className="tool-btn"
+              style={{ padding: "2px 6px", height: 22, color: "var(--text-muted)" }}
+              onClick={() => {
+                setAnnotatedImage(null);
+                setDrawingMetadata(null);
+              }}
+              title="Clear uploaded drawing"
+            >
+              <X size={13} />
+            </button>
           </div>
         </div>
       )}
-
 
       {/* Loading Indicator */}
       {isAnalyzing && (
@@ -343,7 +296,7 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
         </div>
       )}
 
-      {/* Visual Diagnostic Inspection: Annotated Sketch from the Brain */}
+      {/* Visual Diagnostic Inspection: Annotated Sketch from the Brain (Only when an image was uploaded) */}
       {annotatedImage && (
         <div style={{ marginBottom: 14, background: "#050811", border: "1px solid var(--border-bright)", borderRadius: "var(--radius-md)", padding: 12, overflow: "hidden" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -351,8 +304,20 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
               <Eye size={13} />
               <span>Vision Brain Detection Overlay (Centerline & Callouts Tagged)</span>
             </div>
-            <div style={{ fontSize: "0.72rem", color: "var(--accent-emerald)", fontWeight: 600 }}>
-              &check; {bendItems.length} Bends &bull; {legItems.length} Straight Sections Detected
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ fontSize: "0.72rem", color: "var(--accent-emerald)", fontWeight: 600 }}>
+                ✓ {bendItems.length} Bends • {legItems.length} Straight Sections Detected
+              </div>
+              <button
+                type="button"
+                className="tool-btn"
+                style={{ padding: "2px 8px", fontSize: "0.72rem", height: 24, color: "var(--accent-rose)", borderColor: "rgba(244,63,94,0.3)" }}
+                onClick={() => setAnnotatedImage(null)}
+                title="Dismiss image preview"
+              >
+                <X size={13} />
+                <span>Dismiss</span>
+              </button>
             </div>
           </div>
           <div style={{ textAlign: "center", maxHeight: 300, overflow: "hidden", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-color)" }}>
@@ -387,7 +352,7 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
           </div>
           {is3DActive ? (
             <span style={{ fontSize: "0.7rem", background: "rgba(6, 182, 212, 0.2)", color: "var(--accent-cyan)", padding: "2px 8px", borderRadius: "var(--radius-sm)", fontWeight: 700 }}>
-              &sparkles; True 3D Multi-Plane Elevation Active
+              ✨ True 3D Multi-Plane Elevation Active
             </span>
           ) : (
             <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", background: "rgba(255, 255, 255, 0.05)", padding: "2px 8px", borderRadius: "var(--radius-sm)" }}>
@@ -402,7 +367,7 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
             <div style={{ fontSize: "0.95rem", fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--text-main)" }}>
               {drawingMetadata?.bbox_3d
                 ? (displayUnit === "in" ? `${drawingMetadata.bbox_3d.width_in}"` : `${drawingMetadata.bbox_3d.width_mm} mm`)
-                : "--"}
+                : (displayUnit === "in" ? '7.87"' : '200 mm')}
             </div>
           </div>
 
@@ -411,7 +376,7 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
             <div style={{ fontSize: "0.95rem", fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--text-main)" }}>
               {drawingMetadata?.bbox_3d
                 ? (displayUnit === "in" ? `${drawingMetadata.bbox_3d.length_in}"` : `${drawingMetadata.bbox_3d.length_mm} mm`)
-                : "--"}
+                : (displayUnit === "in" ? '11.87"' : '301 mm')}
             </div>
           </div>
 
@@ -422,7 +387,7 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
             border: is3DActive ? "1px solid var(--accent-cyan)" : "1px solid var(--border-color)"
           }}>
             <div style={{ fontSize: "0.68rem", color: "var(--accent-cyan)", fontWeight: 700, textTransform: "uppercase" }}>
-              &updownarrow; Height (Z Dimension)
+              ↕ Height (Z Dimension)
             </div>
             <div style={{ fontSize: "1rem", fontWeight: 800, fontFamily: "var(--font-mono)", color: is3DActive ? "var(--accent-cyan)" : "var(--text-muted)" }}>
               {drawingMetadata?.bbox_3d
@@ -433,7 +398,7 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
         </div>
       </div>
 
-      {/* Engineering Specs Overview Grid */}
+      {/* Engineering Specs Overview Grid (Shown when metadata is available) */}
       {drawingMetadata && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
           {/* Card 1: Tube Cross-Section */}
@@ -444,7 +409,7 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", marginBottom: 4 }}>
               <span>Outer Diameter (OD):</span>
               <span style={{ fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--accent-cyan)" }}>
-                &Oslash;{formatLength(drawingMetadata.tube_od_mm)} {unitLabel} ({drawingMetadata.tube_od_mm}mm)
+                Ø{formatLength(drawingMetadata.tube_od_mm)} {unitLabel} ({drawingMetadata.tube_od_mm}mm)
               </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", marginBottom: 4 }}>
@@ -525,7 +490,7 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
                         {displayUnit === "in" ? `${(row.y_feed_mm / 25.4).toFixed(2)}"` : `${row.y_feed_mm} mm`}
                       </td>
                       <td style={{ padding: "6px 8px", fontWeight: 700, color: Math.abs(row.b_rotation_deg) > 1 ? "var(--accent-cyan)" : "var(--text-muted)" }}>
-                        {row.b_rotation_deg}&deg;{" "}
+                        {row.b_rotation_deg}°{" "}
                         {Math.abs(row.b_rotation_deg - 90) < 1
                           ? "(Up +Z Rise)"
                           : Math.abs(row.b_rotation_deg - (-90)) < 1 || Math.abs(row.b_rotation_deg - 270) < 1
@@ -537,7 +502,7 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
                           : "(Spatial)"}
                       </td>
                       <td style={{ padding: "6px 8px", fontWeight: 700, color: "var(--accent-emerald)" }}>
-                        {row.c_angle_deg}&deg;
+                        {row.c_angle_deg}°
                       </td>
                       <td style={{ padding: "6px 8px" }}>
                         {displayUnit === "in" ? `${(row.clr_mm / 25.4).toFixed(2)}"` : `${row.clr_mm} mm`}
@@ -647,12 +612,12 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
                         onChange={(e) => handleBendChange(idx, "bend_angle_deg", e.target.value)}
                         title="Bend Angle (C-Axis)"
                       >
-                        <option value="30">30&deg;</option>
-                        <option value="45">45&deg;</option>
-                        <option value="60">60&deg;</option>
-                        <option value="90">90&deg;</option>
-                        <option value="120">120&deg;</option>
-                        <option value="180">180&deg;</option>
+                        <option value="30">30°</option>
+                        <option value="45">45°</option>
+                        <option value="60">60°</option>
+                        <option value="90">90°</option>
+                        <option value="120">120°</option>
+                        <option value="180">180°</option>
                       </select>
 
                       {/* 3rd-Axis Direction Presets */}
@@ -664,7 +629,7 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
                           onClick={() => handleBendChange(idx, "direction", "right")}
                           title="Flat Right (0° in-plane)"
                         >
-                          Flat 0&deg;
+                          Flat 0°
                         </button>
                         <button
                           type="button"
@@ -724,7 +689,7 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
                   {isExpanded && (
                     <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{ fontSize: "0.72rem", color: "var(--accent-cyan)", fontWeight: 600, width: 140 }}>
-                        3rd-Axis Twist Roll (&beta;):
+                        3rd-Axis Twist Roll (β):
                       </div>
                       <input
                         type="range"
@@ -736,7 +701,7 @@ export default function PaperDrawingStudio({ onDrawingAnalyzed, currentDrawingNa
                         style={{ flex: 1, accentColor: "var(--accent-cyan)" }}
                       />
                       <div style={{ width: 65, textAlign: "right", fontFamily: "var(--font-mono)", fontSize: "0.78rem", fontWeight: 700, color: "var(--accent-cyan)" }}>
-                        {item.plane_rotation_deg || 0}&deg;
+                        {item.plane_rotation_deg || 0}°
                       </div>
                     </div>
                   )}
