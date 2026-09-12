@@ -27,6 +27,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from starlette.middleware.gzip import GZipMiddleware
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 app.include_router(cad.router)
 app.include_router(sketch.router)
 app.include_router(pricing.router)
