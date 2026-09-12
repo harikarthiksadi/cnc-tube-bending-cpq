@@ -18,43 +18,62 @@ A simple web tool to quote and visualize bent metal pipes. You can drop in a han
 
 ## How to run it
 
-### Option 1: With Docker (Quickest)
+### ⚡ 1-Click Quickstart (Recommended)
 
+Clone the repository:
 ```bash
-git clone git@github.com:harikarthiksadi/cnc-tube-bending-cpq.git
+git clone https://github.com/harikarthiksadi/cnc-tube-bending-cpq.git
 cd cnc-tube-bending-cpq
-docker compose up --build
 ```
 
-Then open **http://localhost:8000** in your browser.
+* **Mac / Linux**: Run `./start.sh` (sets up Python environment, starts the server, and opens your browser).
+* **Windows**: Double-click or run `start.bat`.
+
+Then access the complete CPQ system at **[http://localhost:8000](http://localhost:8000)**.
 
 ---
 
-### Option 2: Run locally
-
-#### 1. Backend (Python)
+### Option 2: With Docker
 
 ```bash
-cd backend
+docker compose up --build
+```
+Then open **[http://localhost:8000](http://localhost:8000)**.
+
+---
+
+### Option 3: Manual Python Execution (Single Port)
+
+Because the pre-compiled web app bundle is included in `frontend/dist`, you do **not** need Node.js installed to run it!
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+pip install -r backend/requirements.txt
+cd backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
+Open **[http://localhost:8000](http://localhost:8000)** in your browser.
 
 > *Tip: For reading handwriting and measurements from drawings, install Tesseract (`brew install tesseract` on Mac or `sudo apt install tesseract-ocr` on Linux).*
 
-#### 2. Frontend (React + Vite)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open **http://localhost:5173** in your browser.
-
 ---
+
+### Option 4: Frontend Development Mode (Vite Hot-Reload)
+
+If you are modifying React components in `frontend/src`:
+
+1. Start the backend on port 8000:
+   ```bash
+   cd backend && uvicorn app.main:app --reload --port 8000
+   ```
+2. Start Vite dev server:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+3. Open **[http://localhost:5173](http://localhost:5173)**. (The Vite dev server proxies API calls to port 8000 automatically).
 
 ## Running tests
 

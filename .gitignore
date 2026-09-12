@@ -37,4 +37,7 @@ yarn-debug.log*
 cnc-tube-cpq-prototype.zip
 scratch/
 dist/
-*/dist/
+
+# Allow pre-compiled frontend distribution for 1-click standalone execution
+!frontend/dist
+!frontend/dist/**
