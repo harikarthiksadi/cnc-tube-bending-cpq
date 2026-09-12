@@ -7,13 +7,24 @@ import cv2
 from collections import deque
 from pathlib import Path
 from typing import Dict, Any, List, Tuple, Optional, Union
+import shutil
 import pytesseract
 
-# Configure tesseract executable path
-for t_path in ["/opt/homebrew/bin/tesseract", "/usr/local/bin/tesseract", "/usr/bin/tesseract"]:
-    if Path(t_path).exists():
-        pytesseract.pytesseract.tesseract_cmd = t_path
-        break
+# Configure tesseract executable path across Mac, Linux, and Windows
+t_found = shutil.which("tesseract")
+if t_found:
+    pytesseract.pytesseract.tesseract_cmd = t_found
+else:
+    for t_path in [
+        "/opt/homebrew/bin/tesseract",
+        "/usr/local/bin/tesseract",
+        "/usr/bin/tesseract",
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+    ]:
+        if Path(t_path).exists():
+            pytesseract.pytesseract.tesseract_cmd = t_path
+            break
 
 class VisionBrain:
     """

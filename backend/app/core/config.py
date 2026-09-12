@@ -11,7 +11,7 @@ UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 QUOTES_DIR.mkdir(parents=True, exist_ok=True)
 SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
 
-DATABASE_URL = f"sqlite+aiosqlite:///{STORAGE_DIR}/cnc_cpq.db"
+DATABASE_URL = f"sqlite+aiosqlite:///{STORAGE_DIR.as_posix()}/cnc_cpq.db"
 
 APP_NAME = "Automated CNC Tube Bending CPQ"
 COMPANY_NAME = "Precision Tube & Bending Co."
