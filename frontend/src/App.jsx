@@ -1,23 +1,38 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Header from "./components/Header";
 import ThreeViewer from "./components/ThreeViewer";
-import CadUploader from "./components/CadUploader";
 import PaperDrawingStudio from "./components/PaperDrawingStudio";
 import GeometrySpecs from "./components/GeometrySpecs";
 import PricingBreakdown from "./components/PricingBreakdown";
 import QuoteModal from "./components/QuoteModal";
 import AdminPortal from "./components/AdminPortal";
 import QuotesHistory from "./components/QuotesHistory";
-import { loadDrawingPreset, calculatePricing } from "./services/api";
-import { PenTool, FileCode2 } from "lucide-react";
+import PasscodeGate from "./components/PasscodeGate";
+import { loadDrawingPreset, calculatePricing, getCompanyProfile } from "./services/api";
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem("tube-cpq-authenticated") === "true";
+  });
   const [activeTab, setActiveTab] = useState("cpq");
-  const [inputMode, setInputMode] = useState("sketch"); // "sketch" (2D Paper Drawing) or "cad" (3D CAD File)
+  const [adminInitialTab, setAdminInitialTab] = useState("tubes");
+  const [companyProfile, setCompanyProfile] = useState(null);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("tube-cpq-theme") || "light";
   });
+
+  useEffect(() => {
+    async function loadCompany() {
+      try {
+        const comp = await getCompanyProfile();
+        if (comp) setCompanyProfile(comp);
+      } catch (err) {
+        console.warn("Could not load company profile:", err);
+      }
+    }
+    loadCompany();
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -35,7 +50,7 @@ export default function App() {
   });
   const [drawingTitle, setDrawingTitle] = useState("Standard U-Bend Pipe Sketch");
 
-  // Version 3 Order Specs (Matching Image 2 Sheet)
+  // Version 3 Order Specs (Matching Excel Sheets + Material Sourcing & GST)
   const [specs, setSpecs] = useState({
     job_number: "121",
     tube_shape: "Square",
@@ -48,7 +63,12 @@ export default function App() {
     clr_mm: 50.8,
     quantity: 100,
     custom_setting_charge: 500.0,
-    manual_rate_per_piece: null
+    manual_rate_per_piece: null,
+    // Material Sourcing & GST state
+    material_mode: "making_cost_only", // "making_cost_only" | "with_material"
+    material_rate_per_kg: null,
+    gst_type: "intra_state",            // "intra_state" | "inter_state" | "exempt"
+    gst_rate_pct: 18.0
   });
 
   // Pricing calculation result state
@@ -82,7 +102,12 @@ export default function App() {
         material_code: currentSpecs.material_code,
         custom_setting_charge: currentSpecs.custom_setting_charge,
         manual_rate_per_piece: currentSpecs.manual_rate_per_piece,
-        clr_mm: currentSpecs.clr_mm
+        clr_mm: currentSpecs.clr_mm,
+        material_mode: currentSpecs.material_mode || "making_cost_only",
+        material_rate_per_kg: currentSpecs.material_rate_per_kg,
+        scrap_allowance_pct: 5.0,
+        gst_type: currentSpecs.gst_type || "intra_state",
+        gst_rate_pct: currentSpecs.gst_rate_pct || 18.0
       });
       setPricing(result);
     } catch (err) {
@@ -129,22 +154,74 @@ export default function App() {
       ...prev,
       [field]: value
     }));
+    if (field === "tube_od_mm") {
+      const val = parseFloat(value) || 25.4;
+      setGeometryData((prev) => ({
+        ...prev,
+        tube_od_mm: val
+      }));
+    }
+  }
+
+  // Dedicated handler for live pipe diameter changes
+  function handleDiameterChange(newDiameter) {
+    const val = parseFloat(newDiameter) || 25.4;
+    setSpecs((prev) => ({
+      ...prev,
+      tube_od_mm: val
+    }));
+    setGeometryData((prev) => ({
+      ...prev,
+      tube_od_mm: val
+    }));
+  }
+
+  function handleOpenCompanySettings() {
+    setAdminInitialTab("company");
+    setActiveTab("admin");
+    setIsQuoteModalOpen(false);
+  }
+
+  function handleUnlock() {
+    setIsAuthenticated(true);
+  }
+
+  function handleLock() {
+    localStorage.removeItem("tube-cpq-authenticated");
+    setIsAuthenticated(false);
+  }
+
+  // Upfront 6-Digit Protection Passcode Gate (242628)
+  if (!isAuthenticated) {
+    return (
+      <PasscodeGate
+        onUnlock={handleUnlock}
+        companyProfile={companyProfile}
+        theme={theme}
+      />
+    );
   }
 
   return (
     <div className="app-container">
-      {/* Navigation Header */}
+      {/* Navigation Header with Company Branding */}
       <Header
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => {
+          if (tab === "admin") setAdminInitialTab("tubes");
+          setActiveTab(tab);
+        }}
         theme={theme}
         onToggleTheme={(newTheme) => setTheme(newTheme)}
+        companyProfile={companyProfile}
+        onOpenCompanySettings={handleOpenCompanySettings}
+        onLock={handleLock}
       />
 
       {/* Primary Tab: CPQ Studio */}
       {activeTab === "cpq" && (
         <main className="dashboard-layout">
-          {/* Left Column: 3D Viewport, Drawing/CAD Input, Geometry Specs */}
+          {/* Left Column: 3D Viewport, Drawing Studio, Geometry Specs */}
           <div className="left-column">
             {/* Interactive Three.js 3D Viewport */}
             <ThreeViewer
@@ -155,44 +232,19 @@ export default function App() {
               theme={theme}
             />
 
-            {/* Input Mode Selector Tabs (Drawings vs 3D CAD) */}
-            <div style={{ display: "flex", gap: 10, background: "var(--bg-surface)", padding: 6, borderRadius: "var(--radius-md)", border: "1px solid var(--border-color)" }}>
-              <button
-                className={`nav-tab ${inputMode === "sketch" ? "active" : ""}`}
-                style={{ flex: 1, justifyContent: "center", fontSize: "0.85rem" }}
-                onClick={() => setInputMode("sketch")}
-              >
-                <PenTool size={15} />
-                <span>Drawings & Sketches</span>
-              </button>
-
-              <button
-                className={`nav-tab ${inputMode === "cad" ? "active" : ""}`}
-                style={{ flex: 1, justifyContent: "center", fontSize: "0.85rem" }}
-                onClick={() => setInputMode("cad")}
-              >
-                <FileCode2 size={15} />
-                <span>3D CAD Model</span>
-              </button>
-            </div>
-
-            {/* Render 2D Paper Drawing Studio OR 3D CAD Uploader based on mode */}
-            {inputMode === "sketch" ? (
-              <PaperDrawingStudio
-                onDrawingAnalyzed={handleDrawingLoaded}
-                currentDrawingName={drawingTitle}
-              />
-            ) : (
-              <CadUploader
-                onCadLoaded={handleDrawingLoaded}
-                currentFileName={drawingTitle}
-              />
-            )}
+            {/* Paper Drawing & Sketch Studio */}
+            <PaperDrawingStudio
+              onDrawingAnalyzed={handleDrawingLoaded}
+              currentDrawingName={drawingTitle}
+              tubeOdMm={specs.tube_od_mm}
+              onDiameterChange={handleDiameterChange}
+            />
 
             {/* Profile & Order Parameters (Rate Master Sheet 1) */}
             <GeometrySpecs
               specs={specs}
               onChange={handleSpecChange}
+              onDiameterChange={handleDiameterChange}
               bends={geometryData.bends}
               rateMasterInfo={pricing?.breakdown}
             />
@@ -202,6 +254,12 @@ export default function App() {
           <PricingBreakdown
             pricing={pricing}
             quantity={specs.quantity}
+            materialMode={specs.material_mode}
+            onMaterialModeChange={(val) => handleSpecChange("material_mode", val)}
+            materialRatePerKg={specs.material_rate_per_kg}
+            onMaterialRateChange={(val) => handleSpecChange("material_rate_per_kg", val)}
+            gstType={specs.gst_type}
+            onGstTypeChange={(val) => handleSpecChange("gst_type", val)}
             customSettingCharge={specs.custom_setting_charge}
             onCustomSettingChargeChange={(val) => handleSpecChange("custom_setting_charge", val)}
             manualRatePerPiece={specs.manual_rate_per_piece}
@@ -214,9 +272,13 @@ export default function App() {
       {/* Tab: Quotes Archive */}
       {activeTab === "history" && <QuotesHistory />}
 
-      {/* Tab: Admin Rate Master */}
+      {/* Tab: Admin Rate Master & Company Profile */}
       {activeTab === "admin" && (
-        <AdminPortal onRatesChanged={() => runPricingCalc(specs)} />
+        <AdminPortal
+          initialTab={adminInitialTab}
+          onRatesChanged={() => runPricingCalc(specs)}
+          onCompanyUpdated={(updated) => setCompanyProfile(updated)}
+        />
       )}
 
       {/* Modal: Customer CRM & Branded PDF Quote Download */}
@@ -228,6 +290,8 @@ export default function App() {
           pricing={pricing}
           partName={drawingTitle}
           cadFileName={drawingTitle}
+          companyProfile={companyProfile}
+          onOpenCompanySettings={handleOpenCompanySettings}
         />
       )}
     </div>

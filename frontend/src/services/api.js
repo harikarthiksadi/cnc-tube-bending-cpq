@@ -112,6 +112,22 @@ export function getQuotePdfUrl(quoteId) {
   return `${API_BASE}/quotes/${quoteId}/pdf`;
 }
 
+export async function deleteQuote(quoteId) {
+  const res = await fetch(`${API_BASE}/quotes/${quoteId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete quote");
+  return res.json();
+}
+
+export async function bulkDeleteQuotes(ids) {
+  const res = await fetch(`${API_BASE}/quotes/bulk-delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  if (!res.ok) throw new Error("Failed to bulk delete quotes");
+  return res.json();
+}
+
 // Admin Rate Master
 export async function getTubeRates() {
   const res = await fetch(`${API_BASE}/admin/tube-rates`);
@@ -162,3 +178,24 @@ export async function deleteToolingDie(id) {
   if (!res.ok) throw new Error("Failed to delete tooling die");
   return res.json();
 }
+
+// Company Profile & Branding
+export async function getCompanyProfile() {
+  const res = await fetch(`${API_BASE}/admin/company`);
+  if (!res.ok) throw new Error("Failed to fetch company profile");
+  return res.json();
+}
+
+export async function updateCompanyProfile(payload) {
+  const res = await fetch(`${API_BASE}/admin/company`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to update company profile");
+  }
+  return res.json();
+}
+

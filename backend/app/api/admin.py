@@ -11,8 +11,27 @@ from app.models.rate_master import (
     SetupChargeMaster,
     ToolingDie
 )
+from app.models.company import CompanyProfile
 
 router = APIRouter(prefix="/api/admin", tags=["Admin Rate Master"])
+
+class CompanyProfileUpdate(BaseModel):
+    company_name: str
+    tagline: Optional[str] = ""
+    address: Optional[str] = ""
+    city_state_zip: Optional[str] = ""
+    phone: Optional[str] = ""
+    email: Optional[str] = ""
+    gstin: Optional[str] = ""
+    website: Optional[str] = ""
+    bank_name: Optional[str] = ""
+    account_no: Optional[str] = ""
+    ifsc_code: Optional[str] = ""
+    default_lead_time: Optional[str] = "5 – 7 Business Days"
+    default_payment_terms: Optional[str] = "50% Advance with PO, Balance before dispatch"
+    default_validity_days: Optional[int] = 30
+    default_delivery_terms: Optional[str] = "Ex-Works Factory"
+    default_terms_and_conditions: Optional[str] = ""
 
 class TubeRateUpdate(BaseModel):
     bending_rate_per_pc: float
@@ -105,3 +124,34 @@ async def delete_tooling_die(die_id: int, db: AsyncSession = Depends(get_db)):
     await db.delete(die)
     await db.commit()
     return {"status": "success", "message": "Tooling die deleted"}
+
+@router.get("/company")
+async def get_company_profile(db: AsyncSession = Depends(get_db)):
+    stmt = select(CompanyProfile).order_by(CompanyProfile.id.asc())
+    res = await db.execute(stmt)
+    profile = res.scalars().first()
+    if not profile:
+        profile = CompanyProfile()
+        db.add(profile)
+        await db.commit()
+        await db.refresh(profile)
+    return profile
+
+@router.put("/company")
+async def update_company_profile(payload: CompanyProfileUpdate, db: AsyncSession = Depends(get_db)):
+    stmt = select(CompanyProfile).order_by(CompanyProfile.id.asc())
+    res = await db.execute(stmt)
+    profile = res.scalars().first()
+    if not profile:
+        profile = CompanyProfile()
+        db.add(profile)
+
+    update_dict = payload.model_dump(exclude_unset=True)
+    for field, val in update_dict.items():
+        if hasattr(profile, field):
+            setattr(profile, field, val)
+    profile.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(profile)
+    return {"status": "success", "message": "Company profile updated successfully", "profile": profile}
+

@@ -52,15 +52,16 @@ export default function GeometrySpecs({
             <span className="metric-unit">bends</span>
           </div>
           <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 2 }}>
-            From Customer Drawing
+            From Geometry Sketch
           </div>
         </div>
 
         <div className="metric-box">
           <div className="metric-accent accent-emerald" />
-          <div className="metric-label">Rate Card Profile</div>
-          <div className="metric-value" style={{ fontSize: "1.1rem" }}>
-            {specs.tube_shape} {specs.tube_size}
+          <div className="metric-label">Est. Tube Weight</div>
+          <div className="metric-value" style={{ fontSize: "1.15rem", color: "var(--accent-emerald)" }}>
+            {rateMasterInfo?.weight_kg_per_piece ? rateMasterInfo.weight_kg_per_piece.toFixed(2) : "0.98"}
+            <span className="metric-unit">kg/pc</span>
           </div>
           <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 2 }}>
             {specs.wall_thickness_mm}mm {specs.material_code}
@@ -69,12 +70,12 @@ export default function GeometrySpecs({
 
         <div className="metric-box">
           <div className="metric-accent accent-amber" />
-          <div className="metric-label">Rate Card Lookup</div>
-          <div className="metric-value" style={{ fontSize: "1.05rem", color: "var(--accent-emerald)" }}>
+          <div className="metric-label">Rate Card Master</div>
+          <div className="metric-value" style={{ fontSize: "1.05rem", color: "var(--accent-primary)" }}>
             ₹{rateMasterInfo?.bending_rate_base || 30} / ₹{rateMasterInfo?.cutting_rate_per_pc || 5}
           </div>
           <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 2 }}>
-            Bend / Cut Rate
+            Bend / Cut Base
           </div>
         </div>
       </div>
@@ -163,11 +164,11 @@ export default function GeometrySpecs({
           </select>
         </div>
 
-        {/* Order Quantity (Yellow cell in Sheet 2) */}
+        {/* Order Quantity */}
         <div className="form-group">
           <label className="form-label">
             <span>Quantity (pcs)</span>
-            <span style={{ color: "var(--accent-amber)" }}>Yellow Cell</span>
+            <span style={{ color: "var(--accent-primary)", fontSize: "0.68rem", fontWeight: 700 }}>BATCH SIZE</span>
           </label>
           <input
             type="number"

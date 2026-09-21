@@ -1,16 +1,63 @@
-import React from "react";
-import { Sliders, Cpu, History, Shield, Sun, Moon } from "lucide-react";
+import React, { useState } from "react";
+import { Sliders, History, Shield, Sun, Moon, Building2, Lock } from "lucide-react";
 
-export default function Header({ activeTab, onTabChange, theme = "light", onToggleTheme }) {
+export default function Header({
+  activeTab,
+  onTabChange,
+  theme = "light",
+  onToggleTheme,
+  companyProfile,
+  onOpenCompanySettings,
+  onLock
+}) {
+  const companyName = companyProfile?.company_name || "Krishna Industrial Works";
+  const tagline = companyProfile?.tagline || "Custom Sheet Metal & CNC Machining Solutions";
+  const [logoError, setLogoError] = useState(false);
+
   return (
     <header className="navbar">
-      <div className="nav-brand">
-        <div className="brand-icon">
-          <Cpu size={20} />
+      <div
+        className="nav-brand"
+        onClick={onOpenCompanySettings}
+        title="Click to view/edit Company Profile & Branding"
+        style={{ cursor: "pointer", transition: "opacity 0.2s ease" }}
+      >
+        {/* Company Logo / Fallback Icon */}
+        <div className="brand-icon" style={{ background: "transparent", padding: 0, overflow: "hidden", width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {!logoError ? (
+            <img
+              src="/static/krishna_logo.png"
+              alt={companyName}
+              onError={() => setLogoError(true)}
+              style={{
+                maxHeight: 42,
+                maxWidth: 90,
+                objectFit: "contain",
+                filter: theme === "dark" ? "brightness(1.15) contrast(1.05)" : "none",
+                borderRadius: 4
+              }}
+            />
+          ) : (
+            <Building2 size={22} />
+          )}
         </div>
+
         <div>
-          <div className="brand-title">Tube Bending CPQ</div>
-          <div className="brand-subtitle">Automated Geometry & Costing</div>
+          <div className="brand-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span>{companyName}</span>
+            <span style={{
+              fontSize: "0.62rem",
+              padding: "2px 7px",
+              borderRadius: 4,
+              background: "var(--accent-primary-subtle)",
+              color: "var(--accent-primary)",
+              fontWeight: 800,
+              letterSpacing: "0.04em"
+            }}>
+              CPQ STUDIO
+            </span>
+          </div>
+          <div className="brand-subtitle">{tagline}</div>
         </div>
       </div>
 
@@ -37,13 +84,34 @@ export default function Header({ activeTab, onTabChange, theme = "light", onTogg
           onClick={() => onTabChange("admin")}
         >
           <Shield size={15} />
-          <span>Rate Master</span>
+          <span>Rate Master & Profile</span>
         </button>
       </nav>
 
-      {/* Backend Engine Status & Theme Toggle */}
-      <div className="nav-status">
-        {/* Light / Dark Mode Toggle */}
+      {/* Theme Toggle & Company Settings Shortcut */}
+      <div className="nav-status" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={onOpenCompanySettings}
+          title="Configure Company Details & Letterhead"
+          style={{ fontSize: "0.75rem", padding: "5px 10px", height: 32 }}
+        >
+          <Building2 size={13} />
+          <span>Company Profile</span>
+        </button>
+
+        {onLock && (
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={onLock}
+            title="Lock CPQ Studio (Passcode 242628)"
+            style={{ fontSize: "0.75rem", padding: "5px 10px", height: 32 }}
+          >
+            <Lock size={13} />
+            <span>Lock</span>
+          </button>
+        )}
+
         <button
           className="theme-toggle-btn"
           onClick={() => onToggleTheme && onToggleTheme(theme === "light" ? "dark" : "light")}
@@ -53,11 +121,6 @@ export default function Header({ activeTab, onTabChange, theme = "light", onTogg
           {theme === "light" ? <Moon size={14} /> : <Sun size={14} />}
           <span>{theme === "light" ? "Dark" : "Light"}</span>
         </button>
-
-        <div className="status-badge">
-          <div className="status-dot" />
-          <span>Ready</span>
-        </div>
       </div>
     </header>
   );

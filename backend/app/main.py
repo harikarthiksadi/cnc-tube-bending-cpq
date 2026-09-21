@@ -41,22 +41,34 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi import HTTPException
 from pathlib import Path
 
-# Mount frontend dist static files if built
+# Mount frontend dist or static directory
 FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
-if FRONTEND_DIST.exists():
-    assets_dir = FRONTEND_DIST / "assets"
+STATIC_DIST = Path(__file__).resolve().parent / "static"
+
+dist_dir = None
+if FRONTEND_DIST.exists() and (FRONTEND_DIST / "index.html").exists():
+    dist_dir = FRONTEND_DIST
+elif STATIC_DIST.exists() and (STATIC_DIST / "index.html").exists():
+    dist_dir = STATIC_DIST
+
+if dist_dir:
+    assets_dir = dist_dir / "assets"
     if assets_dir.exists():
         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    static_img_dir = dist_dir / "static"
+    if static_img_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_img_dir)), name="static_img")
 
     @app.api_route("/{full_path:path}", methods=["GET", "HEAD"])
     async def serve_frontend(full_path: str):
         # Allow API routes to be handled by routers
         if full_path.startswith("api/"):
             raise HTTPException(status_code=404, detail="API endpoint not found")
-        file_path = FRONTEND_DIST / full_path
+        file_path = dist_dir / full_path
         if file_path.is_file():
             return FileResponse(file_path)
-        return FileResponse(FRONTEND_DIST / "index.html")
+        return FileResponse(dist_dir / "index.html")
 else:
     @app.get("/", response_class=HTMLResponse)
     def health_check():

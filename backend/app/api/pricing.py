@@ -21,6 +21,12 @@ class PricingRequest(BaseModel):
     manual_rate_per_piece: Optional[float] = None
     secondary_operations: Optional[List[str]] = []
     clr_mm: Optional[float] = None
+    # Material Sourcing & GST parameters
+    material_mode: Optional[str] = "making_cost_only"  # "making_cost_only" | "with_material"
+    material_rate_per_kg: Optional[float] = None
+    scrap_allowance_pct: Optional[float] = 5.0
+    gst_type: Optional[str] = "intra_state"  # "intra_state" | "inter_state" | "exempt"
+    gst_rate_pct: Optional[float] = 18.0
 
 @router.post("/calculate")
 async def calculate_pricing(payload: PricingRequest, db: AsyncSession = Depends(get_db)):
@@ -39,7 +45,12 @@ async def calculate_pricing(payload: PricingRequest, db: AsyncSession = Depends(
             manual_rate_per_piece=payload.manual_rate_per_piece,
             secondary_operations=payload.secondary_operations,
             clr_mm=payload.clr_mm,
-            job_number=payload.job_number
+            job_number=payload.job_number,
+            material_mode=payload.material_mode or "making_cost_only",
+            material_rate_per_kg=payload.material_rate_per_kg,
+            scrap_allowance_pct=payload.scrap_allowance_pct if payload.scrap_allowance_pct is not None else 5.0,
+            gst_type=payload.gst_type or "intra_state",
+            gst_rate_pct=payload.gst_rate_pct if payload.gst_rate_pct is not None else 18.0
         )
         return pricing
     except Exception as e:

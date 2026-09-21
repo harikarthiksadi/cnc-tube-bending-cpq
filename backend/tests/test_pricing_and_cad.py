@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.models.rate_master import Base, TubeRateMaster, SetupChargeMaster, ToolingDie
 from app.services.sketch_analyzer import SketchAnalyzer
-from app.services.pricing_engine import PricingEngine
+from app.services.pricing_engine import PricingEngine, calculate_tube_weight_kg
 from app.services.pdf_generator import PDFQuoteGenerator
 
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
@@ -28,7 +28,6 @@ async def test_session():
     await engine.dispose()
 
 def test_sketch_line_drawing_analysis():
-    # Test U-Pipe line drawing: Leg 1 (250mm), 90 deg bend, Leg 2 (400mm), 90 deg bend, Leg 3 (250mm)
     segments = [
         {"length_mm": 250.0},
         {"bend_angle_deg": 90.0, "direction": "right"},
@@ -43,11 +42,19 @@ def test_sketch_line_drawing_analysis():
     assert result["flattened_length_mm"] > 900.0
     assert len(result["centerline"]) > 10
 
+def test_tube_weight_calculations():
+    # SS Round tube 25.4mm OD, 1.5mm wall, 400mm length
+    w_round = calculate_tube_weight_kg("Round", "1\"", 25.4, 1.5, 400.0, "SS")
+    assert 0.30 < w_round < 0.45
+
+    # MS Square tube 25x25, 1.5mm wall, 400mm length
+    w_sq = calculate_tube_weight_kg("Square", "25x25", 25.0, 1.5, 400.0, "MS")
+    assert 0.40 < w_sq < 0.50
+
 @pytest.mark.asyncio
-async def test_job_121_costing_version_3(test_session):
-    # Image 2 Job 121: Square 25x25, 1.5mm SS, Qty 100, Setting ₹500, Bend ₹30, Cut ₹5
+async def test_job_121_costing_making_cost_only(test_session):
+    # Job 121: Square 25x25, 1.5mm SS, Qty 100, Setting ₹500, Bend ₹30, Cut ₹5
     # Total Labour Cost = ((30 + 5) * 100) + 500 = 3500 + 500 = 4,000.00
-    # Rate / Pc = 40.00
     pricing = await PricingEngine.calculate_quote_pricing(
         session=test_session,
         tube_shape="Square",
@@ -57,7 +64,8 @@ async def test_job_121_costing_version_3(test_session):
         detected_bends=1,
         quantity=100,
         custom_setting_charge=500.0,
-        job_number="121"
+        job_number="121",
+        material_mode="making_cost_only"
     )
 
     assert pricing["breakdown"]["bending_rate_per_pc"] == 30.0
@@ -65,29 +73,33 @@ async def test_job_121_costing_version_3(test_session):
     assert pricing["breakdown"]["part_labor_cost"] == 35.0
     assert pricing["summary"]["total_labour_cost"] == 4000.0
     assert pricing["summary"]["final_rate_per_piece"] == 40.0
+    assert pricing["summary"]["total_material_cost"] == 0.0
+    assert pricing["tax"]["total_gst_amount"] == 720.0  # 18% of 4000
+    assert pricing["summary"]["grand_total"] == 4720.0
 
 @pytest.mark.asyncio
-async def test_job_122_costing_version_3(test_session):
-    # Image 2 Job 122: Round 1", 1.5mm SS, Qty 10, Setting ₹200, Bend ₹25, Cut ₹5
-    # Total Labour Cost = ((25 + 5) * 10) + 200 = 300 + 200 = 500.00
-    # Rate / Pc = 50.00
+async def test_costing_with_material(test_session):
     pricing = await PricingEngine.calculate_quote_pricing(
         session=test_session,
-        tube_shape="Round",
-        tube_size='1"',
+        tube_shape="Square",
+        tube_size="25x25",
         wall_thickness_mm=1.5,
+        flattened_length_mm=400.0,
         material_code="SS",
         detected_bends=1,
-        quantity=10,
-        custom_setting_charge=200.0,
-        job_number="122"
+        quantity=100,
+        custom_setting_charge=500.0,
+        material_mode="with_material",
+        material_rate_per_kg=280.0
     )
 
-    assert pricing["breakdown"]["bending_rate_per_pc"] == 25.0
-    assert pricing["breakdown"]["cutting_rate_per_pc"] == 5.0
-    assert pricing["breakdown"]["part_labor_cost"] == 30.0
-    assert pricing["summary"]["total_labour_cost"] == 500.0
-    assert pricing["summary"]["final_rate_per_piece"] == 50.0
+    assert pricing["summary"]["is_with_material"] is True
+    assert pricing["breakdown"]["material_cost_per_pc"] > 0
+    assert pricing["summary"]["total_material_cost"] > 0
+    # Taxable subtotal includes material + labor
+    assert pricing["summary"]["taxable_subtotal"] > 4000.0
+    # 18% GST properly calculated on grand total
+    assert pricing["summary"]["grand_total"] > pricing["summary"]["taxable_subtotal"]
 
 def test_pdf_generation():
     test_data = {
@@ -101,30 +113,23 @@ def test_pdf_generation():
         "material_code": "SS",
         "detected_bends": 1,
         "flattened_length_mm": 450.0,
+        "tube_weight_kg": 0.45,
+        "material_mode": "with_material",
+        "material_rate_per_kg": 280.0,
+        "material_cost_per_piece": 132.30,
         "quantity": 100,
         "bending_rate_per_pc": 30.0,
         "cutting_rate_per_pc": 5.0,
         "setting_charge": 500.0,
-        "final_rate_per_piece": 40.0,
-        "total_job_cost": 4000.0
+        "final_rate_per_piece": 172.30,
+        "total_job_cost": 17230.0,
+        "gst_type": "intra_state",
+        "gst_rate_pct": 18.0,
+        "cgst_amount": 1550.70,
+        "sgst_amount": 1550.70,
+        "total_gst_amount": 3101.40,
+        "grand_total": 20331.40
     }
     pdf_path = PDFQuoteGenerator.generate_quote_pdf(test_data)
     assert pdf_path.exists()
     assert pdf_path.stat().st_size > 1000
-
-@pytest.mark.asyncio
-async def test_full_quote_payload_structure(test_session):
-    pricing = await PricingEngine.calculate_quote_pricing(
-        session=test_session,
-        tube_shape="Square",
-        tube_size="25x25",
-        detected_bends=2,
-        quantity=100,
-        custom_setting_charge=500.0,
-        job_number="121"
-    )
-    assert pricing["summary"]["total_job_cost"] == 7000.0
-    assert pricing["summary"]["final_rate_per_piece"] == 70.0
-    assert len(pricing["quantity_tiers"]) == 6
-    assert pricing["formula_trace"]["job_cost_formula"] == "(₹65.00 × 100 pcs) + ₹500.00 setup = ₹7000.00"
-

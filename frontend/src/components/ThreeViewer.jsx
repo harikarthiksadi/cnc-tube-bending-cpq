@@ -485,6 +485,24 @@ export default function ThreeViewer({
           ))}
         </div>
       </div>
+
+      {/* Subtle 3D Interaction Hint */}
+      <div style={{
+        position: "absolute",
+        bottom: 10,
+        right: 12,
+        fontSize: "0.68rem",
+        color: "var(--text-muted)",
+        background: "var(--bg-surface-glass)",
+        backdropFilter: "blur(8px)",
+        border: "1px solid var(--border-subtle)",
+        borderRadius: "var(--radius-sm)",
+        padding: "3px 8px",
+        pointerEvents: "none",
+        zIndex: 10
+      }}>
+        Drag to rotate &bull; Scroll to zoom
+      </div>
     </div>
   );
 }

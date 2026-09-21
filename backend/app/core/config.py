@@ -13,8 +13,8 @@ SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
 
 DATABASE_URL = f"sqlite+aiosqlite:///{STORAGE_DIR.as_posix()}/cnc_cpq.db"
 
-APP_NAME = "Automated CNC Tube Bending CPQ"
-COMPANY_NAME = "Precision Tube & Bending Co."
-COMPANY_ADDRESS = "1040 Industrial Parkway, Suite 400, Chicago, IL 60607"
-COMPANY_PHONE = "+1 (800) 555-TUBE"
-COMPANY_EMAIL = "quotes@precisionbending.com"
+APP_NAME = "Krishna Industrial Works CPQ"
+COMPANY_NAME = "Krishna Industrial Works"
+COMPANY_ADDRESS = "Gala No. B1, Jerom Chayya Marg, Kurla (W), Mumbai – 400070, Maharashtra"
+COMPANY_PHONE = "+91 98765 43210"
+COMPANY_EMAIL = "krishnaindustrialworks@gmail.com"
