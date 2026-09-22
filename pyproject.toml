@@ -1,0 +1,8 @@
+[project]
+name = "cnc-tube-bending-cpq"
+version = "1.0.0"
+description = "Automated CNC Tube Bending CPQ & CAD Geometry Pricing Engine"
+requires-python = ">=3.10"
+
+[tool.vercel]
+entrypoint = "backend.app.main:app"
