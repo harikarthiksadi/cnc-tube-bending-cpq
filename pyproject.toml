@@ -3,6 +3,22 @@ name = "cnc-tube-bending-cpq"
 version = "1.0.0"
 description = "Automated CNC Tube Bending CPQ & CAD Geometry Pricing Engine"
 requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "pydantic>=2.8.0",
+    "python-multipart>=0.0.9",
+    "reportlab>=4.2.0",
+    "aiosqlite>=0.20.0",
+    "sqlalchemy>=2.0.30",
+    "numpy>=1.26.0",
+    "scipy>=1.13.0",
+    "trimesh>=4.4.0",
+    "greenlet>=3.0.0",
+    "opencv-python-headless>=4.8.0",
+    "pytesseract>=0.3.10",
+    "pillow>=10.0.0",
+]
 
 [tool.vercel]
 entrypoint = "backend.app.main:app"
